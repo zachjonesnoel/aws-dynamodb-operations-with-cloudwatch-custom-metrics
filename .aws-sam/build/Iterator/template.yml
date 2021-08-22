@@ -1,0 +1,169 @@
+# This is the SAM template that represents the architecture of your serverless application
+# https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-template-basics.html
+
+# The AWSTemplateFormatVersion identifies the capabilities of the template
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/format-version-structure.html
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  eventbridge-invoked-lambda
+
+# Transform section specifies one or more macros that AWS CloudFormation uses to process your template
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/transform-section-structure.html
+Transform:
+- AWS::Serverless-2016-10-31
+
+# Resources declares the AWS resources that you want to include in the stack
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/resources-section-structure.html
+
+Parameters:
+  LambdaSize:
+    Type: Number
+    Default: 1024
+    AllowedValues:
+      - 256
+      - 512
+      - 1024
+      - 2048
+    Description: Lambda iterator memory size (in MB)
+
+
+Resources:  
+  # This is the Lambda function definition associated with the source code: sqs-payload-logger.js. For all available properties, see
+  # https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+  
+  Iterator:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: A Lambda function that gets triggered from Step Functions..
+      Runtime: nodejs14.x
+      Handler: src/handlers/step-function-trigger.stepFunctionTrigger
+      MemorySize: 128
+      Timeout: 100
+      Role: !GetAtt IteratorExecutionRole.Arn
+      
+  DynamoDBQueryAndScan:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: 'DynamoDBQueryAndScanOperations'
+      Description: A Lambda function that queries DynamoDB and updates CloudWatch Custom metrics with the time taken for each DynamoDB operation.
+      Runtime: nodejs14.x
+      Handler: src/handlers/dynamodb-query-scan.dynamoQueryAndScan
+      MemorySize: 128
+      Timeout: 100
+      Role: !GetAtt DynamoDBQueryAndScanExecutionRole.Arn
+  
+  DynamoDBQueryAndScanExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - 
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AmazonDynamoDBFullAccess
+  
+  IteratorExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - 
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/CloudWatchFullAccess
+      Policies:
+        -
+          PolicyName: InvokeLambda
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement: 
+              - 
+                Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !GetAtt DynamoDBQueryAndScan.Arn
+  
+  StateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      StateMachineName: !Join ["", ["LambdaSubMinute", !Ref LambdaSize]]
+      DefinitionString: 
+        !Sub
+          - |-
+            {
+              "Comment": "Invoke Lambda every 10 seconds",
+              "StartAt": "ConfigureCount",
+              "States": {
+                "ConfigureCount": {
+                  "Type": "Pass",
+                  "Result": {
+                    "index": 0,
+                    "count": 5000
+                  },
+                  "ResultPath": "$.iterator",
+                  "Next": "Iterator"
+                },
+                "Iterator": {
+                  "Type": "Task",
+                  "Resource": "${IteratorArn}",
+                  "ResultPath": "$.iterator",
+                  "Next": "IsCountReached"
+                },
+                "IsCountReached": {
+                  "Type": "Choice",
+                  "Choices": [
+                    {
+                      "Variable": "$.iterator.continue",
+                      "BooleanEquals": true,
+                      "Next": "Wait"
+                    }
+                  ],
+                  "Default": "Done"
+                },
+                "Wait": {
+                  "Type": "Wait",
+                  "Seconds": 1,
+                  "Next": "Iterator"
+                },
+                "Done": {
+                  "Type": "Pass",
+                  "End": true
+                }
+              }
+            }
+          -  {IteratorArn: !GetAtt Iterator.Arn}
+      RoleArn: !GetAtt StateMachineExecutionRole.Arn
+
+  StateMachineExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - 
+            Effect: Allow
+            Principal:
+              Service: !Join ["", ["states.", !Ref "AWS::Region", ".amazonaws.com"]]
+            Action: sts:AssumeRole
+      Path: /service-role/
+      Policies:
+        -
+          PolicyName: StepFunctionsInvokeLambda
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement: 
+              - 
+                Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !GetAtt Iterator.Arn
