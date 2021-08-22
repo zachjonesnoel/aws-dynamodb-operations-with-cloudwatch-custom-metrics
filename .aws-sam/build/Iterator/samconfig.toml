@@ -2,10 +2,10 @@ version = 0.1
 [default]
 [default.deploy]
 [default.deploy.parameters]
-stack_name = "dynamodb-testing"
-s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-jogvesdemjlc"
-s3_prefix = "dynamodb-testing"
-region = "us-east-2"
+stack_name = "dynamodb-monitoring"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-vfwymap1j0ta"
+s3_prefix = "dynamodb-monitoring"
+region = "ap-south-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
 parameter_overrides = "LambdaSize=\"1024\""

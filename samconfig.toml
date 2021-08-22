@@ -2,9 +2,9 @@ version = 0.1
 [default]
 [default.deploy]
 [default.deploy.parameters]
-stack_name = "dynamodb-testing"
+stack_name = "dynamodb-monitoring"
 s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-vfwymap1j0ta"
-s3_prefix = "dynamodb-testing"
+s3_prefix = "dynamodb-monitoring"
 region = "ap-south-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
