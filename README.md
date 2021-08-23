@@ -1,5 +1,8 @@
 # aws-dynamodb-operations-with-cloudwatch-custom-metrics
 
+This implementation walk-through is provided in : [dev.to/awscommunity-asean/dynamodb-operations-scan-vs-query-with-cloudwatch-custom-metrics](https://dev.to/awscommunity-asean/dynamodb-operations-scan-vs-query-with-cloudwatch-custom-metrics-2mik), which describes how Step Functions invoked Lambda function can process/invoke another Lambda which will perform operations on DynamoDB and log the response time in CloudWatch Custom Metrics. This metric would give you a deeper understanding how the performance of Scan and Query is efficient and the other key factor impacting performance is the latency due to physical location of the data.
+
+
 This project contains source code and supporting files for a serverless application that you can deploy with the AWS Serverless Application Model (AWS SAM) command line interface (CLI). It includes the following files and folders:
 
 - `src` - Code for the application's Lambda function.
