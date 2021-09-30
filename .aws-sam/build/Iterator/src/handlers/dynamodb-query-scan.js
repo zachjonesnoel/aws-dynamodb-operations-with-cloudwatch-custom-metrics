@@ -8,15 +8,24 @@ const cloudwatch = new AWS.CloudWatch()
 const custom_cloudwatch_metric = async(metric, value) => {
     await cloudwatch.putMetricData({
         'MetricData': [{
-            'MetricName': 'DynamoDBOperations',
+            'MetricName': 'LambdaProcessor',
             'Dimensions': [{
-                'Name': 'OPERATION',
-                'Value': metric
-            }],
+                    'Name': 'OPERATION',
+                    'Value': metric
+                },
+                {
+                    'Name': 'LambdaMemory',
+                    'Value': process.env.AWS_LAMBDA_FUNCTION_MEMORY_SIZE
+                },
+                {
+                    'Name': 'LambdaProcessor',
+                    'Value': process.env.lambda_fn_arch
+                }
+            ],
             'Unit': 'Milliseconds',
             'Value': value
         }, ],
-        'Namespace': 'DynamoDB Queries and Scans'
+        'Namespace': 'Lambda Process Metrics'
     }).promise()
 }
 

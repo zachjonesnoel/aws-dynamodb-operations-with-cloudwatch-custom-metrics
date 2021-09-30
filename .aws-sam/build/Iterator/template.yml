@@ -5,7 +5,7 @@
 # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/format-version-structure.html
 AWSTemplateFormatVersion: 2010-09-09
 Description: >-
-  eventbridge-invoked-lambda
+  StateMachine invoked Lambda function to test the performance of DynamoDB operations with Lambda fns architecture - arm64 and x86_64 and the metrics updated on CloudWatch Custom Metric Logs.
 
 # Transform section specifies one or more macros that AWS CloudFormation uses to process your template
 # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/transform-section-structure.html
@@ -98,7 +98,7 @@ Resources:
   StateMachine:
     Type: AWS::StepFunctions::StateMachine
     Properties:
-      StateMachineName: !Join ["", ["LambdaSubMinute", !Ref LambdaSize]]
+      StateMachineName: !Join ["", ["LambdaProcessor", !Ref LambdaSize]]
       DefinitionString: 
         !Sub
           - |-
@@ -110,7 +110,7 @@ Resources:
                   "Type": "Pass",
                   "Result": {
                     "index": 0,
-                    "count": 5000
+                    "count": 100
                   },
                   "ResultPath": "$.iterator",
                   "Next": "Iterator"

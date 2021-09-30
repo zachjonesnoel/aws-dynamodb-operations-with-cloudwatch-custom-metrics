@@ -1,5 +1,7 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: eventbridge-invoked-lambda
+Description: StateMachine invoked Lambda function to test the performance of DynamoDB
+  operations with Lambda fns architecture - arm64 and x86_64 and the metrics updated
+  on CloudWatch Custom Metric Logs.
 Transform:
 - AWS::Serverless-2016-10-31
 Parameters:
@@ -86,14 +88,14 @@ Resources:
       StateMachineName:
         Fn::Join:
         - ''
-        - - LambdaSubMinute
+        - - LambdaProcessor
           - Ref: LambdaSize
       DefinitionString:
         Fn::Sub:
         - "{\n  \"Comment\": \"Invoke Lambda every 10 seconds\",\n  \"StartAt\": \"\
           ConfigureCount\",\n  \"States\": {\n    \"ConfigureCount\": {\n      \"\
           Type\": \"Pass\",\n      \"Result\": {\n        \"index\": 0,\n        \"\
-          count\": 5000\n      },\n      \"ResultPath\": \"$.iterator\",\n      \"\
+          count\": 100\n      },\n      \"ResultPath\": \"$.iterator\",\n      \"\
           Next\": \"Iterator\"\n    },\n    \"Iterator\": {\n      \"Type\": \"Task\"\
           ,\n      \"Resource\": \"${IteratorArn}\",\n      \"ResultPath\": \"$.iterator\"\
           ,\n      \"Next\": \"IsCountReached\"\n    },\n    \"IsCountReached\": {\n\
